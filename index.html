@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KOSPI ORACLE</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg:       #f0f2f5;
+  --surface:  #ffffff;
+  --surface2: #f8f9fb;
+  --border:   #e1e4e8;
+  --border2:  #d0d7de;
+  --t1:       #1a1f2e;
+  --t2:       #4a5568;
+  --tm:       #8a94a6;
+  --bull:     #0a7c3e;
+  --bull-bg:  #e8f5ee;
+  --bull-bd:  #b8ddc8;
+  --bear:     #c0392b;
+  --bear-bg:  #fdf0ee;
+  --bear-bd:  #f0b8b3;
+  --warn:     #b7791f;
+  --warn-bg:  #fef9e7;
+  --warn-bd:  #f6e09a;
+  --acc:      #2563eb;
+  --acc-bg:   #eff6ff;
+  --acc-bd:   #bfdbfe;
+  --us:       #1d4ed8;
+  --jp:       #7c3aed;
+  --cn:       #dc2626;
+  --eu:       #d97706;
+  --com:      #0369a1;
+  --kr:       #059669;
+  --shadow:   0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.06);
+  --shadow-md:0 4px 6px rgba(0,0,0,.07), 0 2px 4px rgba(0,0,0,.06);
+  --shadow-lg:0 10px 15px rgba(0,0,0,.08), 0 4px 6px rgba(0,0,0,.05);
+  --radius:   10px;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:var(--bg); color:var(--t1); font-family:'Noto Sans KR',sans-serif; font-weight:400; min-height:100vh; }
+
+/* ── HEADER ── */
+header {
+  background:var(--surface);
+  border-bottom:1px solid var(--border);
+  padding:0 32px;
+  height:60px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  position:sticky; top:0; z-index:100;
+  box-shadow:var(--shadow);
+}
+.logo { display:flex; align-items:center; gap:10px; }
+.logo-icon { width:32px; height:32px; background:var(--acc); border-radius:8px; display:flex; align-items:center; justify-content:center; color:#fff; font-weight:700; font-size:.85rem; }
+.logo-text { font-size:1.05rem; font-weight:700; color:var(--t1); letter-spacing:-.01em; }
+.logo-sub { font-size:.72rem; color:var(--tm); font-weight:400; }
+.hright { display:flex; align-items:center; gap:10px; }
+.pill { display:flex; align-items:center; gap:6px; padding:5px 12px; border-radius:20px; font-size:.72rem; font-weight:500; }
+.pill-live { background:var(--bull-bg); color:var(--bull); border:1px solid var(--bull-bd); }
+.pill-time { background:var(--surface2); color:var(--tm); border:1px solid var(--border); font-family:'DM Mono',monospace; }
+.ldot { width:6px; height:6px; border-radius:50%; background:var(--bull); animation:pulse 2s infinite; }
+@keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.6;transform:scale(1.3)} }
+.btn { padding:7px 16px; border-radius:7px; border:none; cursor:pointer; font-size:.78rem; font-weight:500; transition:all .15s; font-family:'Noto Sans KR',sans-serif; }
+.btn-acc { background:var(--acc); color:#fff; }
+.btn-acc:hover { background:#1d4ed8; box-shadow:0 0 0 3px var(--acc-bd); }
+.btn-ghost { background:var(--surface); color:var(--t2); border:1px solid var(--border2); }
+.btn-ghost:hover { background:var(--surface2); }
+
+/* ── LAYOUT ── */
+main { max-width:1400px; margin:0 auto; padding:24px 32px; }
+
+/* ── CARDS ── */
+.card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow); }
+.card-p { padding:20px 22px; }
+
+/* ── SECTION HEADER ── */
+.sh { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
+.sh-title { font-size:.8rem; font-weight:700; color:var(--tm); text-transform:uppercase; letter-spacing:.08em; }
+
+/* ── STATUS ROW ── */
+.sbar { display:flex; align-items:center; flex-wrap:wrap; gap:6px; margin-bottom:20px; }
+.stag { display:flex; align-items:center; gap:5px; padding:4px 10px; border-radius:6px; font-size:.72rem; background:var(--surface); border:1px solid var(--border); color:var(--t2); }
+.stag b { color:var(--t1); font-weight:600; }
+
+/* ── PREDICTION GRID ── */
+.pgrid { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:20px; }
+
+.pcard {
+  border-radius:var(--radius);
+  padding:22px;
+  border:2px solid transparent;
+  position:relative;
+  overflow:hidden;
+  transition:all .2s;
+  box-shadow:var(--shadow-md);
+}
+.pcard-up   { background:linear-gradient(135deg,#f0fdf4,#dcfce7); border-color:var(--bull-bd); }
+.pcard-down { background:linear-gradient(135deg,#fff5f5,#fee2e2); border-color:var(--bear-bd); }
+.pcard-neu  { background:linear-gradient(135deg,#fefce8,#fef9c3); border-color:var(--warn-bd); }
+.pcard-def  { background:var(--surface2); border-color:var(--border); }
+.pcard:hover { transform:translateY(-2px); box-shadow:var(--shadow-lg); }
+
+.p-label { font-size:.68rem; font-weight:600; color:var(--tm); text-transform:uppercase; letter-spacing:.1em; margin-bottom:6px; }
+.p-idx   { font-size:.88rem; font-weight:700; color:var(--t2); margin-bottom:10px; }
+.p-dir   { font-size:2.4rem; font-weight:800; line-height:1; margin-bottom:10px; letter-spacing:-.02em; }
+.up-c    { color:var(--bull); }
+.down-c  { color:var(--bear); }
+.neu-c   { color:var(--warn); }
+
+.conf-wrap { margin-bottom:12px; }
+.conf-meta { display:flex; justify-content:space-between; font-size:.7rem; color:var(--tm); margin-bottom:4px; }
+.conf-track { height:6px; background:rgba(0,0,0,.08); border-radius:3px; overflow:hidden; }
+.conf-fill  { height:100%; border-radius:3px; transition:width 1s ease; }
+.cf-up   { background:linear-gradient(90deg,#16a34a,#22c55e); }
+.cf-down { background:linear-gradient(90deg,#dc2626,#ef4444); }
+.cf-neu  { background:linear-gradient(90deg,#d97706,#f59e0b); }
+
+.p-range { font-size:.72rem; color:var(--tm); margin-bottom:10px; font-family:'DM Mono',monospace; }
+.p-brief { font-size:.82rem; color:var(--t2); line-height:1.6; padding:10px 12px; background:rgba(255,255,255,.7); border-radius:7px; border:1px solid rgba(0,0,0,.06); }
+
+/* ── FACTOR CHIPS ── */
+.frow { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:20px; }
+.fc     { font-size:.72rem; padding:4px 10px; border-radius:5px; font-weight:500; }
+.fc-neu { background:var(--acc-bg); color:var(--acc); border:1px solid var(--acc-bd); }
+.fc-up  { background:var(--bull-bg); color:var(--bull); border:1px solid var(--bull-bd); }
+.fc-dn  { background:var(--bear-bg); color:var(--bear); border:1px solid var(--bear-bd); }
+
+/* ── ANALYSIS CARD ── */
+.analysis-text { font-size:.84rem; line-height:1.85; color:var(--t2); white-space:pre-wrap; background:var(--surface2); padding:16px; border-radius:8px; border:1px solid var(--border); min-height:80px; }
+
+/* ── INDEX GRID ── */
+.region-wrap { margin-bottom:20px; }
+.region-head { display:flex; align-items:center; gap:8px; margin-bottom:10px; }
+.rtag { font-size:.68rem; font-weight:600; padding:3px 9px; border-radius:5px; }
+.rt-us  { background:rgba(29,78,216,.1);  color:var(--us);  border:1px solid rgba(29,78,216,.2); }
+.rt-jp  { background:rgba(124,58,237,.1); color:var(--jp);  border:1px solid rgba(124,58,237,.2); }
+.rt-cn  { background:rgba(220,38,38,.1);  color:var(--cn);  border:1px solid rgba(220,38,38,.2); }
+.rt-eu  { background:rgba(217,119,6,.1);  color:var(--eu);  border:1px solid rgba(217,119,6,.2); }
+.rt-com { background:rgba(3,105,161,.1);  color:var(--com); border:1px solid rgba(3,105,161,.2); }
+.rt-kr  { background:rgba(5,150,105,.1);  color:var(--kr);  border:1px solid rgba(5,150,105,.2); }
+
+.igrid { display:grid; grid-template-columns:repeat(auto-fill,minmax(175px,1fr)); gap:10px; }
+.icard { background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:14px 16px; transition:all .15s; cursor:default; box-shadow:var(--shadow); }
+.icard:hover { border-color:var(--border2); box-shadow:var(--shadow-md); transform:translateY(-1px); }
+
+.i-name  { font-size:.68rem; font-weight:600; color:var(--tm); display:flex; align-items:center; gap:5px; margin-bottom:5px; text-transform:uppercase; letter-spacing:.05em; }
+.rdot    { width:6px; height:6px; border-radius:50%; flex-shrink:0; }
+.i-price { font-size:1.5rem; font-weight:700; line-height:1; margin-bottom:3px; font-family:'DM Mono',monospace; }
+.i-chg   { font-size:.76rem; font-weight:600; font-family:'DM Mono',monospace; }
+.i-state { font-size:.62rem; color:var(--tm); font-weight:400; margin-left:4px; }
+.i-up    { color:var(--bull); }
+.i-down  { color:var(--bear); }
+.i-flat  { color:var(--tm); }
+.sparkwrap { margin-top:8px; height:34px; }
+
+/* ── DUAL GRID ── */
+.dual { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:20px; }
+.triple { display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; margin-bottom:20px; }
+
+/* ── CHART ── */
+.chart-wrap { padding:18px 20px; }
+.chart-title { font-size:.78rem; font-weight:700; color:var(--tm); text-transform:uppercase; letter-spacing:.07em; margin-bottom:14px; }
+
+/* ── CORR TABLE ── */
+.ctbl { width:100%; border-collapse:collapse; font-size:.78rem; }
+.ctbl th { text-align:left; padding:7px 10px; color:var(--tm); font-weight:600; border-bottom:2px solid var(--border); font-size:.7rem; text-transform:uppercase; letter-spacing:.06em; }
+.ctbl td { padding:8px 10px; border-bottom:1px solid var(--border); color:var(--t2); }
+.ctbl tr:last-child td { border-bottom:none; }
+.ctbl tr:hover td { background:var(--surface2); }
+.c-h { color:var(--bull) !important; font-weight:600; }
+.c-m { color:var(--warn) !important; font-weight:600; }
+.c-l { color:var(--bear) !important; font-weight:600; }
+
+/* ── SESSIONS ── */
+.srow { display:flex; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid var(--border); }
+.srow:last-child { border-bottom:none; }
+.sname { font-size:.78rem; font-weight:500; min-width:140px; display:flex; align-items:center; gap:7px; color:var(--t2); }
+.sbar2 { flex:1; }
+.strack { height:5px; background:var(--bg); border-radius:3px; overflow:hidden; border:1px solid var(--border); }
+.sfill  { height:100%; border-radius:3px; transition:width .5s; }
+.sstatus { font-size:.72rem; font-weight:600; min-width:52px; text-align:right; font-family:'DM Mono',monospace; }
+
+/* ── RISK BADGE ── */
+.risk { font-size:.7rem; font-weight:600; padding:3px 9px; border-radius:5px; }
+.rLOW  { background:var(--bull-bg); color:var(--bull); border:1px solid var(--bull-bd); }
+.rMED  { background:var(--warn-bg); color:var(--warn); border:1px solid var(--warn-bd); }
+.rHIGH { background:var(--bear-bg); color:var(--bear); border:1px solid var(--bear-bd); }
+
+/* ── UTILS ── */
+.mb16 { margin-bottom:16px; }
+.mb20 { margin-bottom:20px; }
+.shimmer { background:linear-gradient(90deg,var(--border) 25%,var(--surface2) 50%,var(--border) 75%); background-size:200% 100%; animation:shim 1.5s infinite; border-radius:5px; height:14px; margin-bottom:6px; }
+@keyframes shim { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+
+/* ── COUNTDOWN RING ── */
+.cring-wrap { display:flex; align-items:center; gap:6px; }
+.cring { width:28px; height:28px; }
+
+footer { border-top:1px solid var(--border); padding:16px 32px; display:flex; justify-content:space-between; background:var(--surface); margin-top:32px; }
+footer p { font-size:.68rem; color:var(--tm); }
+
+@media(max-width:900px) { .pgrid,.dual,.triple{grid-template-columns:1fr} main,header{padding:14px 14px} }
+::-webkit-scrollbar{width:5px} ::-webkit-scrollbar-track{background:var(--bg)} ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">KO</div>
+    <div>
+      <div class="logo-text">KOSPI ORACLE</div>
+      <div class="logo-sub">글로벌 지수 자동 추적 · AI 없이 규칙 기반 예측</div>
+    </div>
+  </div>
+  <div class="hright">
+    <div class="pill pill-live"><div class="ldot"></div>LIVE</div>
+    <div class="pill pill-time" id="timer-pill">로딩 중...</div>
+    <button class="btn btn-ghost" onclick="loadData()">🔄 새로고침</button>
+  </div>
+</header>
+
+<main>
+
+  <!-- STATUS -->
+  <div class="sbar" id="sbar">
+    <div class="stag">GitHub Actions 자동 수집</div>
+    <div class="stag">마지막: <b id="s-upd">—</b></div>
+    <div class="stag">수집: <b id="s-cnt">—</b></div>
+    <div class="stag">예측 생성: <b id="s-pred">—</b></div>
+    <div class="stag" id="s-next">다음 갱신: <b id="s-countdown">—</b></div>
+  </div>
+
+  <!-- PREDICTION -->
+  <div class="sh mb16">
+    <span class="sh-title">📊 방향성 예측 (규칙 기반 · 무료)</span>
+    <span id="risk-badge"></span>
+  </div>
+
+  <div class="pgrid mb20">
+    <div class="pcard pcard-def" id="kp-card">
+      <div class="p-label">KOSPI 종합지수</div>
+      <div class="p-idx">코스피</div>
+      <div class="p-dir neu-c" id="kp-dir">—</div>
+      <div class="conf-wrap">
+        <div class="conf-meta"><span>예측 신뢰도</span><span id="kp-cv">—</span></div>
+        <div class="conf-track"><div class="conf-fill cf-neu" id="kp-cb" style="width:0%"></div></div>
+      </div>
+      <div class="p-range" id="kp-rng"></div>
+      <div class="p-brief" id="kp-brief">데이터 로딩 중...</div>
+    </div>
+    <div class="pcard pcard-def" id="kd-card">
+      <div class="p-label">KOSDAQ 기술주</div>
+      <div class="p-idx">코스닥</div>
+      <div class="p-dir neu-c" id="kd-dir">—</div>
+      <div class="conf-wrap">
+        <div class="conf-meta"><span>예측 신뢰도</span><span id="kd-cv">—</span></div>
+        <div class="conf-track"><div class="conf-fill cf-neu" id="kd-cb" style="width:0%"></div></div>
+      </div>
+      <div class="p-range" id="kd-rng"></div>
+      <div class="p-brief" id="kd-brief">데이터 로딩 중...</div>
+    </div>
+  </div>
+
+  <!-- FACTORS -->
+  <div id="factors-wrap" class="mb20" style="display:none">
+    <div class="sh-title mb16" style="margin-bottom:8px">핵심 영향 요인</div>
+    <div class="frow" id="fchips"></div>
+  </div>
+
+  <!-- ANALYSIS -->
+  <div class="card card-p mb20">
+    <div class="sh">
+      <span class="sh-title">📋 시장 분석 요약</span>
+      <span style="font-size:.7rem;color:var(--tm)" id="ana-time"></span>
+    </div>
+    <div class="analysis-text" id="ana-text">글로벌 지수 데이터가 로딩되면 규칙 기반 분석이 표시됩니다.
+
+▸ AI API 비용 없이 상관계수 × 변동률로 방향성 계산
+▸ 미국/일본/중국/유럽 증시 + 달러/유가/금 종합 반영
+▸ GitHub Actions가 10분마다 자동 수집 (PC 꺼도 작동)
+▸ 페이지는 60초마다 자동 갱신</div>
+  </div>
+
+  <!-- GLOBAL INDICES -->
+  <div class="sh-title mb16">🌍 글로벌 지수 현황</div>
+
+  <div class="region-wrap">
+    <div class="region-head"><span class="rtag rt-us">🇺🇸 미국</span></div>
+    <div class="igrid" id="g-us"></div>
+  </div>
+
+  <div class="dual">
+    <div class="region-wrap">
+      <div class="region-head"><span class="rtag rt-jp">🇯🇵 일본</span></div>
+      <div class="igrid" id="g-jp"></div>
+    </div>
+    <div class="region-wrap">
+      <div class="region-head"><span class="rtag rt-cn">🇨🇳 중국·홍콩</span></div>
+      <div class="igrid" id="g-cn"></div>
+    </div>
+  </div>
+
+  <div class="dual">
+    <div class="region-wrap">
+      <div class="region-head"><span class="rtag rt-eu">🇪🇺 유럽</span></div>
+      <div class="igrid" id="g-eu"></div>
+    </div>
+    <div class="region-wrap">
+      <div class="region-head"><span class="rtag rt-com">📦 원자재·환율</span></div>
+      <div class="igrid" id="g-com"></div>
+    </div>
+  </div>
+
+  <div class="region-wrap mb20">
+    <div class="region-head"><span class="rtag rt-kr">🇰🇷 한국</span></div>
+    <div class="igrid" id="g-kr"></div>
+  </div>
+
+  <!-- CHART + CORR -->
+  <div class="dual mb20">
+    <div class="card chart-wrap">
+      <div class="chart-title">당일 변동률 비교 (%)</div>
+      <canvas id="mchart" style="max-height:240px"></canvas>
+    </div>
+    <div class="card card-p">
+      <div class="sh-title mb16" style="margin-bottom:10px">KOSPI 상관계수</div>
+      <table class="ctbl">
+        <thead><tr><th>지수</th><th>상관계수</th><th>현재 영향</th></tr></thead>
+        <tbody id="corr-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- SESSIONS -->
+  <div class="card card-p mb20">
+    <div class="sh-title mb16" style="margin-bottom:12px">🕐 글로벌 마켓 세션</div>
+    <div id="sess-wrap"></div>
+  </div>
+
+</main>
+
+<footer>
+  <p>KOSPI ORACLE — 데이터: Yahoo Finance | 자동화: GitHub Actions | AI 비용: $0</p>
+  <p>⚠ 본 예측은 투자 조언이 아닙니다. 모든 투자 결정은 본인 책임입니다.</p>
+</footer>
+
+<script>
+// ════════════════════════════════════════
+//  CONFIG
+// ════════════════════════════════════════
+const DATA_URL = './data.json';
+const REFRESH_SEC = 60; // 60초마다 자동 갱신
+
+const CORR = {
+  '^GSPC':   {name:'S&P 500',   c: 0.73, w:0.30},
+  '^IXIC':   {name:'NASDAQ',    c: 0.71, w:0.25},
+  '^N225':   {name:'닛케이',    c: 0.68, w:0.15},
+  '^HSI':    {name:'항셍',      c: 0.62, w:0.10},
+  'DX-Y.NYB':{name:'달러인덱스',c:-0.58, w:0.10},
+  'CL=F':    {name:'WTI유가',   c: 0.41, w:0.05},
+  'GC=F':    {name:'금선물',    c: 0.22, w:0.03},
+  '^GDAXI':  {name:'DAX',       c: 0.55, w:0.02},
+};
+// KOSDAQ은 나스닥 가중치 높게
+const CORR_KD = {
+  '^IXIC':   {name:'NASDAQ',    c: 0.78, w:0.35},
+  '^GSPC':   {name:'S&P 500',   c: 0.65, w:0.20},
+  '^N225':   {name:'닛케이',    c: 0.60, w:0.12},
+  'DX-Y.NYB':{name:'달러인덱스',c:-0.55, w:0.12},
+  '^HSI':    {name:'항셍',      c: 0.52, w:0.08},
+  'CL=F':    {name:'WTI유가',   c: 0.30, w:0.05},
+};
+
+const RC = {us:'#1d4ed8',jp:'#7c3aed',cn:'#dc2626',eu:'#d97706',com:'#0369a1',kr:'#059669'};
+
+let gData = null;
+let chart = null;
+let countdown = REFRESH_SEC;
+
+// ════════════════════════════════════════
+//  규칙 기반 예측 엔진 (API 불필요)
+// ════════════════════════════════════════
+function computePrediction(market) {
+  // KOSPI
+  let scoreKP = 0, weightKP = 0;
+  const factorsKP = [];
+  Object.entries(CORR).forEach(([sym, info]) => {
+    const d = market[sym];
+    if (!d || !d.ok) return;
+    const impact = d.change * info.c * info.w;
+    scoreKP += impact;
+    weightKP += info.w;
+    if (Math.abs(impact) > 0.02) {
+      factorsKP.push({name: info.name, impact, change: d.change});
+    }
+  });
+  const normKP = weightKP > 0 ? scoreKP / weightKP : 0;
+
+  // KOSDAQ
+  let scoreKD = 0, weightKD = 0;
+  Object.entries(CORR_KD).forEach(([sym, info]) => {
+    const d = market[sym];
+    if (!d || !d.ok) return;
+    const impact = d.change * info.c * info.w;
+    scoreKD += impact;
+    weightKD += info.w;
+  });
+  const normKD = weightKD > 0 ? scoreKD / weightKD : 0;
+
+  const toDir = (score) => score > 0.08 ? 'UP' : score < -0.08 ? 'DOWN' : 'NEUTRAL';
+  const toConf = (score) => {
+    const abs = Math.abs(score);
+    return Math.min(92, Math.round(50 + abs * 18));
+  };
+  const toRange = (score) => ({
+    low:  parseFloat((score * 0.6 - 0.3).toFixed(2)),
+    high: parseFloat((score * 1.4 + 0.3).toFixed(2)),
+  });
+
+  const dirKP = toDir(normKP), confKP = toConf(normKP), rngKP = toRange(normKP);
+  const dirKD = toDir(normKD), confKD = toConf(normKD), rngKD = toRange(normKD);
+
+  // 핵심 요인 정렬
+  factorsKP.sort((a,b) => Math.abs(b.impact) - Math.abs(a.impact));
+  const topFactors = factorsKP.slice(0,4).map(f =>
+    `${f.name} ${f.change >= 0 ? '▲' : '▼'}${Math.abs(f.change).toFixed(2)}%`
+  );
+
+  // 달러 영향
+  const dx = market['DX-Y.NYB'];
+  const dxEffect = dx ? (dx.change > 0.3 ? '달러 강세 → 외국인 매도 압력' : dx.change < -0.3 ? '달러 약세 → 외국인 유입 기대' : null) : null;
+
+  // 리스크
+  const sp = market['^GSPC'];
+  const vix_proxy = sp ? Math.abs(sp.change) : 0;
+  const risk = vix_proxy > 1.5 ? 'HIGH' : vix_proxy > 0.7 ? 'MEDIUM' : 'LOW';
+
+  // 수혜/주의 섹터
+  const nq = market['^IXIC'];
+  const positiveSectors = [];
+  const negativeSectors = [];
+  if (nq && nq.change > 0.5) positiveSectors.push('반도체', 'IT·플랫폼');
+  if (nq && nq.change < -0.5) negativeSectors.push('기술주');
+  if (dx && dx.change < -0.2) positiveSectors.push('수출주');
+  if (dx && dx.change >  0.2) negativeSectors.push('수입원가 상승주');
+  const oil = market['CL=F'];
+  if (oil && oil.change > 1) { positiveSectors.push('에너지'); negativeSectors.push('항공·운송'); }
+  if (oil && oil.change < -1) positiveSectors.push('항공·운송');
+
+  // 분석 텍스트 생성
+  const kstH = new Date(Date.now() + 9*3600000).getUTCHours();
+  const lines = [
+    `■ 분석 시각: 한국시간 ${kstH}시`,
+    '',
+    `■ 핵심 지표`,
+    sp  ? `  · S&P 500:    ${sp.change >= 0 ? '+' : ''}${sp.change.toFixed(2)}% (${sp.marketState})` : '',
+    nq  ? `  · NASDAQ:     ${nq.change >= 0 ? '+' : ''}${nq.change.toFixed(2)}% (${nq.marketState})` : '',
+    market['^N225'] ? `  · 닛케이225:  ${market['^N225'].change >= 0 ? '+' : ''}${market['^N225'].change.toFixed(2)}%` : '',
+    dx  ? `  · 달러인덱스: ${dx.change >= 0 ? '+' : ''}${dx.change.toFixed(2)}%` : '',
+    '',
+    `■ KOSPI 예측 근거`,
+    `  종합 점수: ${normKP.toFixed(3)} → ${dirKP === 'UP' ? '상승' : dirKP === 'DOWN' ? '하락' : '횡보'} 예상`,
+    dxEffect ? `  환율: ${dxEffect}` : '',
+    '',
+    `■ KOSDAQ 예측 근거`,
+    `  나스닥 가중 점수: ${normKD.toFixed(3)} → ${dirKD === 'UP' ? '상승' : dirKD === 'DOWN' ? '하락' : '횡보'} 예상`,
+    nq ? `  나스닥 ${nq.change >= 0 ? '상승' : '하락'}이 코스닥 기술주에 ${nq.change >= 0 ? '긍정적' : '부정적'} 영향` : '',
+    '',
+    `■ 리스크 수준: ${risk === 'HIGH' ? '높음 ⚠️' : risk === 'MEDIUM' ? '보통 ⚡' : '낮음 ✅'}`,
+    `  (S&P 500 변동폭 ${vix_proxy.toFixed(2)}% 기준)`,
+  ].filter(l => l !== '').join('\n');
+
+  return {
+    kospi:  { direction: dirKP, confidence: confKP, range_low: rngKP.low, range_high: rngKP.high, brief: briefText(dirKP, factorsKP) },
+    kosdaq: { direction: dirKD, confidence: confKD, range_low: rngKD.low, range_high: rngKD.high, brief: briefText(dirKD, [{name:'나스닥', change: nq?.change || 0}]) },
+    key_factors: topFactors,
+    risk_level: risk,
+    sectors: { positive: positiveSectors, negative: negativeSectors },
+    fullText: lines,
+    generatedAt: new Date().toISOString(),
+  };
+}
+
+function briefText(dir, factors) {
+  if (!factors.length) return dir === 'UP' ? '소폭 상승 예상' : dir === 'DOWN' ? '소폭 하락 예상' : '보합 예상';
+  const top = factors[0];
+  const dirStr = dir === 'UP' ? '상승' : dir === 'DOWN' ? '하락' : '보합';
+  return `${top.name} ${top.change >= 0 ? '강세' : '약세'} 영향으로 ${dirStr} 예상`;
+}
+
+// ════════════════════════════════════════
+//  DATA FETCH
+// ════════════════════════════════════════
+async function loadData() {
+  try {
+    const res = await fetch(DATA_URL + '?t=' + Date.now());
+    if (!res.ok) throw new Error('data.json 로드 실패');
+    gData = await res.json();
+
+    // Gemini 예측 있으면 우선 사용, 없으면 규칙 기반 폴백
+    const hasPred = gData.prediction?.structured;
+    if (hasPred) {
+      gData.prediction = {
+        ...gData.prediction.structured,
+        fullText:    gData.prediction.fullText,
+        generatedAt: gData.prediction.generatedAt,
+        engine:      gData.prediction.engine || 'Gemini AI',
+      };
+    } else if (gData.market && Object.keys(gData.market).length > 0) {
+      gData.prediction = computePrediction(gData.market);
+    }
+
+    render();
+    countdown = REFRESH_SEC;
+  } catch(e) {
+    document.getElementById('ana-text').textContent =
+      '⚠️ ' + e.message + '\n\nGitHub Actions가 아직 실행되지 않았을 수 있습니다.\n저장소 → Actions → Run workflow 를 실행해주세요.';
+  }
+}
+
+// ════════════════════════════════════════
+//  RENDER
+// ════════════════════════════════════════
+function render() {
+  const d = gData; if (!d) return;
+
+  // Status
+  document.getElementById('s-upd').textContent  = d.kstTime ? d.kstTime.slice(11,16)+' KST' : '—';
+  document.getElementById('s-cnt').textContent  = `${d.successCount ?? '?'}/${d.totalCount ?? '?'}개`;
+  document.getElementById('s-pred').textContent = d.prediction?.generatedAt
+    ? new Date(d.prediction.generatedAt).toLocaleTimeString('ko-KR') : '없음';
+  document.getElementById('timer-pill').textContent = d.kstTime
+    ? '갱신 ' + d.kstTime.slice(11,16) : '—';
+
+  // Prediction
+  if (d.prediction) applyPred(d.prediction);
+
+  // Analysis
+  if (d.prediction?.fullText) {
+    document.getElementById('ana-text').textContent = d.prediction.fullText;
+    document.getElementById('ana-time').textContent =
+      '생성: ' + new Date(d.prediction.generatedAt).toLocaleTimeString('ko-KR');
+  }
+
+  // Indices
+  ['us','jp','cn','eu','com','kr'].forEach(r => renderRegion(r));
+  setTimeout(drawAllSparks, 60);
+  renderChart();
+  renderCorr();
+  renderSessions();
+}
+
+function applyPred(p) {
+  if (!p) return;
+  const DL = {UP:'▲ 상승',DOWN:'▼ 하락',NEUTRAL:'◆ 보합'};
+  const DC = {UP:'up-c',DOWN:'down-c',NEUTRAL:'neu-c'};
+  const CF = {UP:'cf-up',DOWN:'cf-down',NEUTRAL:'cf-neu'};
+  const PC = {UP:'pcard-up',DOWN:'pcard-down',NEUTRAL:'pcard-neu'};
+
+  const apply = (key, prefix) => {
+    const pr = p[key]; if (!pr) return;
+    const dir = pr.direction, conf = pr.confidence ?? 0;
+    document.getElementById(prefix+'-card').className = `pcard ${PC[dir]||'pcard-def'}`;
+    document.getElementById(prefix+'-dir').textContent = DL[dir]||'—';
+    document.getElementById(prefix+'-dir').className = `p-dir ${DC[dir]||'neu-c'}`;
+    document.getElementById(prefix+'-cv').textContent = conf + '%';
+    const bar = document.getElementById(prefix+'-cb');
+    bar.style.width = conf + '%';
+    bar.className = `conf-fill ${CF[dir]||'cf-neu'}`;
+    document.getElementById(prefix+'-brief').textContent = pr.brief || '—';
+    if (pr.range_low != null) {
+      document.getElementById(prefix+'-rng').textContent =
+        `예상 변동폭: ${pr.range_low >= 0?'+':''}${pr.range_low}% ~ ${pr.range_high >= 0?'+':''}${pr.range_high}%`;
+    }
+  };
+  apply('kospi','kp'); apply('kosdaq','kd');
+
+  if (p.risk_level) {
+    const RL = {LOW:'낮음',MEDIUM:'보통',HIGH:'높음'};
+    document.getElementById('risk-badge').innerHTML =
+      `<span class="risk r${p.risk_level}">리스크 ${RL[p.risk_level]}</span>`;
+  }
+
+  if (p.key_factors?.length || p.sectors?.positive?.length) {
+    document.getElementById('factors-wrap').style.display = '';
+    document.getElementById('fchips').innerHTML =
+      (p.key_factors||[]).map(f=>`<span class="fc fc-neu">${f}</span>`).join('') +
+      (p.sectors?.positive||[]).map(s=>`<span class="fc fc-up">▲ ${s}</span>`).join('') +
+      (p.sectors?.negative||[]).map(s=>`<span class="fc fc-dn">▼ ${s}</span>`).join('');
+  }
+}
+
+// ════════════════════════════════════════
+//  INDEX CARDS
+// ════════════════════════════════════════
+function renderRegion(r) {
+  const el = document.getElementById('g-'+r); if (!el) return;
+  const items = Object.values(gData.market||{}).filter(d=>d.region===r);
+  el.innerHTML = items.length
+    ? items.map(cardHTML).join('')
+    : `<div style="color:var(--tm);font-size:.78rem;padding:10px">데이터 없음</div>`;
+}
+
+function fmt(p) {
+  if (!p) return '—';
+  if (p > 10000) return p.toLocaleString('ko-KR',{maximumFractionDigits:0});
+  if (p > 100)   return p.toLocaleString('ko-KR',{minimumFractionDigits:2,maximumFractionDigits:2});
+  return p.toFixed(3);
+}
+
+function cardHTML(d) {
+  const dir  = d.change > .01 ? 'up' : d.change < -.01 ? 'down' : 'flat';
+  const sign = d.change > 0 ? '+' : '';
+  const sid  = 'sp-' + d.symbol.replace(/[^a-z0-9]/gi,'');
+  const rc   = RC[d.region] || '#666';
+  const open = d.marketState === 'REGULAR';
+  return `
+    <div class="icard">
+      <div class="i-name"><span class="rdot" style="background:${rc}"></span>${d.name||d.symbol}
+        ${open ? '<span style="color:var(--bull);font-size:.6rem">●</span>' : ''}
+      </div>
+      <div class="i-price i-${dir}">${fmt(d.price)}</div>
+      <div class="i-chg i-${dir}">${sign}${d.change?.toFixed(2)}%<span class="i-state">${d.marketState||''}</span></div>
+      <div class="sparkwrap"><canvas id="${sid}" height="34"></canvas></div>
+    </div>`;
+}
+
+function drawAllSparks() {
+  Object.values(gData.market||{}).forEach(d => {
+    const c = document.getElementById('sp-'+d.symbol.replace(/[^a-z0-9]/gi,''));
+    if (c && d.closes?.length > 1) drawSpark(c, d.closes, d.change >= 0);
+  });
+}
+
+function drawSpark(canvas, vals, up) {
+  const w = canvas.offsetWidth || 160;
+  canvas.width = w; canvas.height = 34;
+  const ctx = canvas.getContext('2d');
+  const mn = Math.min(...vals), mx = Math.max(...vals), rng = mx-mn||1;
+  const col = up ? '#16a34a' : '#dc2626';
+  const g = ctx.createLinearGradient(0,0,0,34);
+  g.addColorStop(0, col+'30'); g.addColorStop(1, 'transparent');
+  ctx.beginPath();
+  vals.forEach((v,i) => {
+    const x=(i/(vals.length-1))*w, y=30-((v-mn)/rng)*26;
+    i ? ctx.lineTo(x,y) : ctx.moveTo(x,y);
+  });
+  ctx.strokeStyle=col; ctx.lineWidth=1.5; ctx.stroke();
+  ctx.lineTo(w,34); ctx.lineTo(0,34); ctx.closePath();
+  ctx.fillStyle=g; ctx.fill();
+}
+
+// ════════════════════════════════════════
+//  CHART
+// ════════════════════════════════════════
+function renderChart() {
+  const items = Object.values(gData.market||{}).filter(d=>d.region!=='kr' && d.ok);
+  const labels  = items.map(d=>d.name);
+  const changes = items.map(d=>d.change||0);
+  const colors  = changes.map(v=>v>=0?'#16a34a':'#dc2626');
+  const bgColors= changes.map(v=>v>=0?'rgba(22,163,74,.15)':'rgba(220,38,38,.15)');
+
+  if (!chart) {
+    const ctx = document.getElementById('mchart').getContext('2d');
+    chart = new Chart(ctx, {
+      type:'bar',
+      data:{labels,datasets:[{data:changes,backgroundColor:bgColors,borderColor:colors,borderWidth:1.5,borderRadius:4}]},
+      options:{
+        responsive:true,
+        plugins:{
+          legend:{display:false},
+          tooltip:{backgroundColor:'#fff',borderColor:'#e1e4e8',borderWidth:1,titleColor:'#4a5568',bodyColor:'#1a1f2e',callbacks:{label:c=>(c.parsed.y>=0?'+':'')+c.parsed.y.toFixed(2)+'%'}},
+        },
+        scales:{
+          x:{ticks:{color:'#8a94a6',font:{size:10}},grid:{color:'rgba(0,0,0,.04)'}},
+          y:{ticks:{color:'#8a94a6',font:{size:10},callback:v=>v+'%'},grid:{color:'rgba(0,0,0,.04)'}},
+        }
+      }
+    });
+  } else {
+    chart.data.labels=labels;
+    chart.data.datasets[0].data=changes;
+    chart.data.datasets[0].backgroundColor=bgColors;
+    chart.data.datasets[0].borderColor=colors;
+    chart.update('none');
+  }
+}
+
+// ════════════════════════════════════════
+//  CORRELATION
+// ════════════════════════════════════════
+function renderCorr() {
+  const mk = gData.market||{};
+  const rows = Object.entries(CORR).filter(([s])=>mk[s]).sort((a,b)=>Math.abs(b[1].c)-Math.abs(a[1].c));
+  document.getElementById('corr-body').innerHTML = rows.map(([sym,info])=>{
+    const d=mk[sym], a=Math.abs(info.c);
+    const cls=a>.65?'c-h':a>.45?'c-m':'c-l';
+    const up=(info.c>0&&d.change>0)||(info.c<0&&d.change<0);
+    const eff=up?`<span style="color:var(--bull)">▲ 상승 압력</span>`:`<span style="color:var(--bear)">▼ 하락 압력</span>`;
+    return `<tr><td>${info.name}</td><td class="${cls}">${info.c>=0?'+':''}${info.c.toFixed(2)}</td><td>${eff}</td></tr>`;
+  }).join('');
+}
+
+// ════════════════════════════════════════
+//  SESSIONS
+// ════════════════════════════════════════
+function renderSessions() {
+  const SS = [
+    {name:'🇰🇷 한국 (KRX)', tz:9,  open:9,   close:15.5, col:'#059669'},
+    {name:'🇯🇵 일본 (TSE)', tz:9,  open:9,   close:15.5, col:'#7c3aed'},
+    {name:'🇨🇳 중국 (SSE)', tz:8,  open:9.5, close:15,   col:'#dc2626'},
+    {name:'🇬🇧 영국 (LSE)', tz:1,  open:8,   close:16.5, col:'#d97706'},
+    {name:'🇩🇪 독일 (XETRA)',tz:2, open:9,   close:17.5, col:'#d97706'},
+    {name:'🇺🇸 미국 (NYSE)', tz:-4, open:9.5,close:16,   col:'#1d4ed8'},
+  ];
+  const utc = Date.now() + new Date().getTimezoneOffset()*60000;
+  document.getElementById('sess-wrap').innerHTML = SS.map(s=>{
+    const d  = new Date(utc + s.tz*3600000);
+    const h  = d.getUTCHours() + d.getUTCMinutes()/60;
+    const on = h>=s.open && h<s.close;
+    const pct= Math.min(100,Math.max(0,((h-s.open)/(s.close-s.open))*100));
+    return `
+      <div class="srow">
+        <div class="sname">
+          <div style="width:8px;height:8px;border-radius:50%;background:${on?s.col:'#d1d5db'}"></div>
+          ${s.name}
+        </div>
+        <div class="sbar2"><div class="strack"><div class="sfill" style="width:${pct}%;background:${on?s.col:'#d1d5db'}"></div></div></div>
+        <div class="sstatus" style="color:${on?s.col:'#8a94a6'}">${on?'OPEN':'CLOSED'}</div>
+      </div>`;
+  }).join('');
+}
+
+// ════════════════════════════════════════
+//  AUTO REFRESH + COUNTDOWN
+// ════════════════════════════════════════
+loadData();
+
+// 60초마다 자동 갱신
+setInterval(loadData, REFRESH_SEC * 1000);
+setInterval(renderSessions, 30000);
+
+// 카운트다운
+setInterval(() => {
+  countdown--;
+  if (countdown <= 0) countdown = REFRESH_SEC;
+  document.getElementById('s-countdown').textContent = countdown + '초';
+}, 1000);
+</script>
+</body>
+</html>
