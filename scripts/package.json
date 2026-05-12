@@ -1,0 +1,12 @@
+{
+  "name": "kospi-oracle-scripts",
+  "version": "1.0.0",
+  "description": "지수 수집 및 AI 예측 스크립트",
+  "type": "module",
+  "scripts": {
+    "collect": "node collect.js"
+  },
+  "dependencies": {
+    "node-fetch": "^3.3.2"
+  }
+}
